@@ -1,0 +1,70 @@
+/* ── Container ── */
+.eve-container {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Center bubble over bot */
+}
+
+/* ── Chat Bubble ── */
+.eve-bubble {
+    background: white;
+    padding: 14px 18px;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    margin-bottom: 10px;
+    max-width: 240px;
+    text-align: center;
+    position: relative;
+    border: 2px solid #f1f5f9;
+}
+
+.bubble-text {
+    color: #334155;
+    font-size: 0.9em;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.bubble-tail {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #f1f5f9;
+}
+
+.bubble-tail::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid white;
+}
+
+/* ── Button Reset ── */
+.eve-character-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    filter: drop-shadow(0 10px 20px rgba(59, 130, 246, 0.2));
+    transition: filter 0.3s;
+}
+
+.eve-character-btn:hover {
+    filter: drop-shadow(0 15px 30px rgba(59, 130, 246, 0.3));
+}

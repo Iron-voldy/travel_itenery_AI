@@ -1,0 +1,8 @@
+/* App-level layout helpers */
+.main-layout {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  position: relative;
+  z-index: 10;
+  min-height: calc(100vh - 200px);
+}

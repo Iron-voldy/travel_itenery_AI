@@ -1,0 +1,197 @@
+.day-content {
+    padding: 20px;
+}
+
+/* Day header */
+.day-header-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    padding: 20px 24px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 30px rgba(99, 102, 241, .3);
+}
+
+.day-header-icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(255, 255, 255, .2);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    backdrop-filter: blur(10px);
+}
+
+.day-header-info h3 {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.day-header-info span {
+    font-size: .9em;
+    color: rgba(255, 255, 255, .8);
+}
+
+/* Hotel card */
+.day-hotel-card {
+    background: rgba(139, 92, 246, .14);
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    border: 1px solid rgba(139, 92, 246, .2);
+}
+
+.hotel-emoji {
+    font-size: 1.6em;
+}
+
+.hotel-info-block {
+    flex: 1;
+    min-width: 140px;
+}
+
+.hotel-name {
+    font-weight: 600;
+    color: #fff;
+}
+
+.hotel-star {
+    font-size: .8em;
+    color: var(--gray-400);
+    margin-top: 2px;
+}
+
+.hotel-times {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.check-in {
+    font-size: .75em;
+    color: #10b981;
+}
+
+.check-out {
+    font-size: .75em;
+    color: #ef4444;
+}
+
+/* Activity table */
+.activity-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: rgba(30, 41, 59, .5);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.activity-table thead {
+    background: rgba(99, 102, 241, .12);
+}
+
+.activity-table th {
+    padding: 14px 18px;
+    text-align: left;
+    font-weight: 600;
+    font-size: .85em;
+    color: var(--gray-300);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.activity-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .04);
+    font-size: .9em;
+    color: var(--gray-200);
+}
+
+.activity-row {
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.activity-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(99, 102, 241, .14);
+    color: var(--primary-light);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: .85em;
+    white-space: nowrap;
+}
+
+.activity-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.activity-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .85em;
+    flex-shrink: 0;
+}
+
+.activity-details h4 {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+    font-size: .95em;
+}
+
+.activity-details p {
+    font-size: .8em;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.activity-tag {
+    padding: 4px 10px;
+    background: rgba(6, 182, 212, .14);
+    color: var(--accent-light);
+    border-radius: 6px;
+    font-size: .75em;
+    font-weight: 500;
+}
+
+.activity-tag.meal {
+    background: rgba(245, 158, 11, .14);
+    color: var(--warning);
+}
+
+.activity-tag.hotel {
+    background: rgba(139, 92, 246, .14);
+    color: #a78bfa;
+}

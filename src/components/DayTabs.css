@@ -1,0 +1,55 @@
+.day-tabs {
+    display: flex;
+    background: rgba(30, 41, 59, .5);
+    overflow-x: auto;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    padding: 0 10px;
+}
+
+.day-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.day-tabs::-webkit-scrollbar-thumb {
+    background: var(--gray-600);
+    border-radius: 2px;
+}
+
+.day-tab {
+    padding: 16px 24px;
+    background: none;
+    border: none;
+    color: var(--gray-400);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .25s;
+    white-space: nowrap;
+    position: relative;
+    font-size: .95em;
+    font-family: inherit;
+}
+
+.day-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transform: scaleX(0);
+    transition: transform .3s;
+    border-radius: 3px 3px 0 0;
+}
+
+.day-tab:hover {
+    color: var(--gray-200);
+}
+
+.day-tab.active {
+    color: #fff;
+}
+
+.day-tab.active::after {
+    transform: scaleX(1);
+}

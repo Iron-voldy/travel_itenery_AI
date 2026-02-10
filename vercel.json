@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/webhook/:match*",
+            "destination": "https://aahaas-ai.app.n8n.cloud/webhook/:match*"
+        }
+    ]
+}

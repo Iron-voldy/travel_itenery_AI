@@ -1,4 +1,4 @@
-const WEBHOOK_URL = 'webhook/travel-itinerary1';
+const WEBHOOK_URL = '/webhook/travel-itinerary1';
 
 export async function generateItinerary(prompt) {
     const response = await fetch(WEBHOOK_URL, {

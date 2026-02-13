@@ -195,3 +195,128 @@
     background: rgba(139, 92, 246, .14);
     color: #a78bfa;
 }
+
+.activity-tag.theme-tag {
+    margin-left: 4px;
+    background: rgba(139, 92, 246, .15);
+    color: #a78bfa;
+}
+
+/* Day summary box */
+.day-summary-box {
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    background: rgba(6, 182, 212, .08);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    font-size: .85em;
+    color: var(--gray-300);
+}
+
+/* Highlight badge */
+.day-highlight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    margin-bottom: 14px;
+    background: rgba(245, 158, 11, .12);
+    border-radius: 8px;
+    font-size: .8em;
+    color: var(--warning);
+}
+
+/* Departure notice */
+.day-departure-notice {
+    padding: 8px 14px;
+    margin-bottom: 14px;
+    background: rgba(239, 68, 68, .1);
+    border-radius: 10px;
+    font-size: .8em;
+    color: var(--gray-400);
+    border-left: 3px solid var(--danger);
+}
+
+/* Route flow bar */
+.route-flow-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: rgba(99, 102, 241, .1);
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, .2);
+}
+
+.route-flow-label {
+    font-size: .75em;
+    color: var(--gray-400);
+    margin-right: 4px;
+}
+
+.route-flow-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.route-flow-num {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75em;
+    font-weight: 700;
+}
+
+.route-flow-name {
+    font-size: .78em;
+    color: var(--gray-200);
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.route-flow-arrow {
+    color: var(--primary-light);
+    font-size: 1.1em;
+    margin: 0 2px;
+}
+
+/* Meals section */
+.meals-section {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: rgba(245, 158, 11, .08);
+    border-radius: 12px;
+    border: 1px solid rgba(245, 158, 11, .15);
+}
+
+.meals-title {
+    font-size: .8em;
+    font-weight: 600;
+    color: var(--warning);
+    margin-bottom: 8px;
+}
+
+.meals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: .8em;
+    color: var(--gray-300);
+}
+
+.meal-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}

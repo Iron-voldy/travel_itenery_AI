@@ -47,3 +47,16 @@
     font-size: 11px;
     color: #888;
 }
+
+/* Numbered & arrow marker icons */
+.numbered-marker,
+.arrow-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}

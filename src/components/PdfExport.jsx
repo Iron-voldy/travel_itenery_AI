@@ -76,42 +76,59 @@ function generatePdf(data) {
       ${itinerary.map((day, i) => {
         const dayNum = day.day || i + 1;
         const hotel = day.hotel || day.overnight_stay || {};
+        const acts = day.activities || [];
+        const summary = day.day_summary || '';
+        const highlight = day.highlight || '';
+        const meals = day.meals || {};
         return `
           <div class="day-section">
             <div class="day-header">
               <strong>Day ${dayNum} - ${day.theme || day.region || 'Exploration'}</strong>
               <span style="font-size: 12px; opacity: 0.9; margin-left: 10px;">${day.date || ''}</span>
             </div>
+            ${highlight ? `<div style="background:#fef3c7;padding:8px 14px;border-radius:6px;margin-bottom:10px;font-size:12px;border-left:3px solid #f59e0b;">⭐ ${highlight}</div>` : ''}
+            ${summary ? `<div style="background:#eff6ff;padding:8px 14px;border-radius:6px;margin-bottom:10px;font-size:12px;border-left:3px solid #3b82f6;">💡 ${summary}</div>` : ''}
             ${hotel.hotel_name ? `
               <div class="day-hotel">
                 🏨 <strong>${hotel.hotel_name}</strong>
                 <span style="color: #666;">• ⭐ ${hotel.star_classification || 'N/A'} Star</span>
               </div>
             ` : ''}
+            <div style="background:#f8f9fa;padding:8px 14px;border-radius:6px;margin-bottom:12px;font-size:11px;color:#555;">
+              🗺️ Route: ${acts.map((a, idx) => `${idx + 1}. ${a.name || 'Activity'}`).join(' → ')}
+            </div>
             <table>
               <thead>
                 <tr>
                   <th style="width: 80px;">Time</th>
                   <th>Activity</th>
                   <th style="width: 120px;">Location</th>
-                  <th style="width: 80px;">Duration</th>
+                  <th style="width: 80px;">Score</th>
                 </tr>
               </thead>
               <tbody>
-                ${(day.activities || []).map(act => {
-            const match = products.find(p => p.day === dayNum && (p.matched_product_name === act.name || p.name === act.name));
-            const location = act.location || match?.matched_city || match?.location || '';
+                ${acts.map(act => {
+            const location = act.city || act.location || '';
+            const score = act.score != null ? act.score + ' pts' : 'N/A';
             return `
                     <tr>
                       <td style="color: #6366f1; font-weight: 600;">${act.time || 'TBD'}</td>
                       <td>${act.name || act.activity_name}</td>
                       <td style="color: #666;">${location}</td>
-                      <td>${act.duration_hours ? act.duration_hours + 'h' : 'N/A'}</td>
+                      <td>${score}</td>
                     </tr>
                   `;
         }).join('')}
               </tbody>
             </table>
+            ${meals.breakfast || meals.lunch || meals.dinner ? `
+              <div style="margin-top:10px;padding:10px 14px;background:#f0fdf4;border-radius:6px;font-size:11px;">
+                <strong>🍽️ Meals:</strong>
+                ${meals.breakfast ? `<div>🌅 Breakfast: ${typeof meals.breakfast === 'object' ? meals.breakfast.suggestion || meals.breakfast.location || '' : meals.breakfast}</div>` : ''}
+                ${meals.lunch ? `<div>☀️ Lunch: ${typeof meals.lunch === 'object' ? meals.lunch.suggestion || meals.lunch.location || '' : meals.lunch}</div>` : ''}
+                ${meals.dinner ? `<div>🌙 Dinner: ${typeof meals.dinner === 'object' ? meals.dinner.suggestion || meals.dinner.location || '' : meals.dinner}</div>` : ''}
+              </div>
+            ` : ''}
           </div>
         `;
     }).join('')}

@@ -42,6 +42,13 @@ function App() {
     const activity = (dayData.activities || [])[actIdx];
     if (!activity) return;
 
+    // Try direct lat/lng from the activity (new API format)
+    if (activity.lat && activity.lng) {
+      setFlyTo({ lat: activity.lat, lng: activity.lng, dayNum, actIdx, key: Date.now() });
+      return;
+    }
+
+    // Fallback: match from products
     const match = data.products.find(p =>
       p.day === dayNum &&
       (p.matched_product_name === activity.name ||
@@ -53,14 +60,14 @@ function App() {
     if (match) {
       const coords = match.matched_coordinates || match.coordinates;
       if (coords?.lat && coords?.lng) {
-        setFlyTo({ lat: coords.lat, lng: coords.lng, productIndex: data.products.indexOf(match), key: Date.now() });
+        setFlyTo({ lat: coords.lat, lng: coords.lng, dayNum, actIdx, key: Date.now() });
       }
     }
   }, [data]);
 
   return (
     <>
-      <div className="bg-animation">
+      <div className="bg-gradient">
         <div className="bg-orb" />
         <div className="bg-orb" />
         <div className="bg-orb" />

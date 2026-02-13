@@ -9,6 +9,7 @@ export function getFirstImageUrl(imageField) {
                 return imageField.split(',')[0].trim();
             }
         }
+        if (imageField.includes(',')) return imageField.split(',')[0].trim();
         return imageField;
     }
     if (Array.isArray(imageField)) return imageField[0] || null;
@@ -17,7 +18,8 @@ export function getFirstImageUrl(imageField) {
 
 export const DAY_COLORS = [
     '#6366f1', '#06b6d4', '#10b981', '#f59e0b',
-    '#ef4444', '#8b5cf6', '#ec4899',
+    '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
+    '#f97316', '#a855f7',
 ];
 
 export const EXAMPLE_PROMPTS = [

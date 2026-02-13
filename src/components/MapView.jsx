@@ -1,38 +1,41 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Marker, Polyline, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getFirstImageUrl, DAY_COLORS } from '../utils/helpers';
 import './MapView.css';
 
 /* ── Fly-to controller ── */
-function FlyController({ flyTo, markers }) {
+function FlyController({ flyTo, activityMarkerRefs }) {
     const map = useMap();
     useEffect(() => {
         if (!flyTo) return;
-        map.flyTo([flyTo.lat, flyTo.lng], 13, { duration: 1.2 });
-        // open popup on the matching marker
+        map.flyTo([flyTo.lat, flyTo.lng], 14, { duration: 1.2 });
         setTimeout(() => {
-            markers.current.forEach((m, i) => {
-                if (i === flyTo.productIndex && m) m.openPopup();
-            });
+            const key = `day${flyTo.dayNum}-act${flyTo.actIdx}`;
+            const marker = activityMarkerRefs.current[key];
+            if (marker) marker.openPopup();
         }, 1300);
     }, [flyTo]);
     return null;
 }
 
 /* ── Day highlight controller ── */
-function DayHighlight({ selectedDay, products, itinerary, hotelMarkersRef }) {
+function DayHighlight({ selectedDay, itinerary, hotelMarkersRef, activityMarkerRefs }) {
     const map = useMap();
     useEffect(() => {
         const dayNum = selectedDay + 1;
-        const dayProducts = products.filter(p => p.day === dayNum);
-        const bounds = dayProducts
-            .filter(p => { const c = p.matched_coordinates || p.coordinates; return c?.lat && c?.lng; })
-            .map(p => { const c = p.matched_coordinates || p.coordinates; return [c.lat, c.lng]; });
-
-        // Also add hotel coords
         const dayData = itinerary.find(d => d.day === dayNum) || itinerary[dayNum - 1];
+        if (!dayData) return;
+
+        map.closePopup();
+
+        const bounds = [];
+        (dayData.activities || []).forEach(act => {
+            if (act.lat && act.lng) bounds.push([act.lat, act.lng]);
+        });
+
+        // Add hotel coords
         const hotelKey = `day-${dayNum}`;
         const hotelMarker = hotelMarkersRef.current[hotelKey];
         if (hotelMarker) {
@@ -41,9 +44,15 @@ function DayHighlight({ selectedDay, products, itinerary, hotelMarkersRef }) {
         }
 
         if (bounds.length > 0) {
-            map.fitBounds(bounds, { padding: [80, 80], maxZoom: 12 });
-            if (hotelMarker) setTimeout(() => hotelMarker.openPopup(), 400);
+            map.fitBounds(bounds, { padding: [80, 80], maxZoom: 13 });
         }
+
+        // Open first activity popup
+        setTimeout(() => {
+            const key = `day${dayNum}-act0`;
+            const marker = activityMarkerRefs.current[key];
+            if (marker) marker.openPopup();
+        }, 400);
     }, [selectedDay]);
     return null;
 }
@@ -51,32 +60,46 @@ function DayHighlight({ selectedDay, products, itinerary, hotelMarkersRef }) {
 /* ── Main MapView ── */
 export default function MapView({ data, selectedDay, flyTo }) {
     const { products, itinerary, hotels } = data;
-    const markerRefs = useRef([]);
+    const activityMarkerRefs = useRef({});
     const hotelMarkerRefs = useRef({});
 
-    // Build activity route coordinates
-    const routeData = useMemo(() => {
-        const allCoords = [];
-        const byDay = {};
-        products.forEach(p => {
-            const coords = p.matched_coordinates || p.coordinates;
-            if (coords?.lat && coords?.lng) {
-                allCoords.push({ day: p.day, time: p.time || '00:00', coords: [coords.lat, coords.lng] });
-                if (!byDay[p.day]) byDay[p.day] = [];
-                byDay[p.day].push({ coords: [coords.lat, coords.lng], time: p.time || '00:00' });
+    // Build day-based route data from itinerary (most reliable source)
+    const dayRoutes = useMemo(() => {
+        const routes = {};
+        itinerary.forEach(day => {
+            const dayNum = day.day;
+            const coords = [];
+            (day.activities || []).forEach(act => {
+                if (act.lat && act.lng) coords.push([act.lat, act.lng]);
+            });
+            if (coords.length > 0) routes[dayNum] = coords;
+        });
+        return routes;
+    }, [itinerary]);
+
+    // Arrow midpoints for route direction indicators
+    const arrowPoints = useMemo(() => {
+        const arrows = [];
+        Object.entries(dayRoutes).forEach(([day, coords]) => {
+            const color = DAY_COLORS[(parseInt(day) - 1) % DAY_COLORS.length];
+            for (let k = 0; k < coords.length - 1; k++) {
+                const from = coords[k];
+                const to = coords[k + 1];
+                const midLat = (from[0] + to[0]) / 2;
+                const midLng = (from[1] + to[1]) / 2;
+                const angle = Math.atan2(to[0] - from[0], to[1] - from[1]) * 180 / Math.PI;
+                arrows.push({ pos: [midLat, midLng], angle, color, key: `arrow-${day}-${k}` });
             }
         });
-        allCoords.sort((a, b) => a.day !== b.day ? a.day - b.day : a.time.localeCompare(b.time));
-        Object.values(byDay).forEach(arr => arr.sort((a, b) => a.time.localeCompare(b.time)));
-        return { allCoords, byDay };
-    }, [products]);
+        return arrows;
+    }, [dayRoutes]);
 
-    // Selected hotel names from itinerary
-    const selectedHotelNames = useMemo(() => {
+    // Selected hotel names
+    const selectedHotelInfo = useMemo(() => {
         const names = new Set();
         const dayMap = {};
         itinerary.forEach(day => {
-            const h = day.hotel || day.overnight_stay || {};
+            const h = day.hotel || {};
             if (h.hotel_name) {
                 names.add(h.hotel_name.toLowerCase().trim());
                 dayMap[day.day] = h.hotel_name.toLowerCase().trim();
@@ -88,18 +111,18 @@ export default function MapView({ data, selectedDay, flyTo }) {
     // Initial bounds
     const bounds = useMemo(() => {
         const pts = [];
+        itinerary.forEach(day => {
+            (day.activities || []).forEach(act => {
+                if (act.lat && act.lng) pts.push([act.lat, act.lng]);
+            });
+        });
         products.forEach(p => {
             const c = p.matched_coordinates || p.coordinates;
             if (c?.lat && c?.lng) pts.push([c.lat, c.lng]);
         });
         hotels.forEach(h => { if (h.latitude && h.longitude) pts.push([h.latitude, h.longitude]); });
         return pts.length > 0 ? pts : [[7.8731, 80.7718]];
-    }, [products, hotels]);
-
-    // Reset marker refs
-    useEffect(() => {
-        markerRefs.current = markerRefs.current.slice(0, products.length);
-    }, [products]);
+    }, [itinerary, products, hotels]);
 
     return (
         <MapContainer
@@ -116,81 +139,88 @@ export default function MapView({ data, selectedDay, flyTo }) {
                 maxZoom={18}
             />
 
-            <FlyController flyTo={flyTo} markers={markerRefs} />
+            <FlyController flyTo={flyTo} activityMarkerRefs={activityMarkerRefs} />
             <DayHighlight
                 selectedDay={selectedDay}
-                products={products}
                 itinerary={itinerary}
                 hotelMarkersRef={hotelMarkerRefs}
+                activityMarkerRefs={activityMarkerRefs}
             />
 
-            {/* Activity markers */}
-            {products.map((p, idx) => {
-                const coords = p.matched_coordinates || p.coordinates;
-                if (!coords?.lat || !coords?.lng) return null;
-                const color = DAY_COLORS[(p.day - 1) % DAY_COLORS.length];
-                const imageUrl = getFirstImageUrl(p.image);
-                const similarityScore = p.similarity_score || p.match_score || p.score || 'N/A';
-                const formattedScore = typeof similarityScore === 'number' ? (similarityScore * 100).toFixed(1) + '%' : similarityScore;
-                const rank = p.rank || p.priority || idx + 1;
-                const region = p.region || p.matched_region || '';
+            {/* Numbered activity markers from itinerary */}
+            {itinerary.flatMap((day) => {
+                const dayNum = day.day;
+                const color = DAY_COLORS[(dayNum - 1) % DAY_COLORS.length];
+                return (day.activities || []).map((act, idx) => {
+                    if (!act.lat || !act.lng) return null;
+                    const imageUrl = getFirstImageUrl(act.image);
+                    const score = act.score != null ? act.score : '';
+                    const themeMatch = act.theme_match != null ? act.theme_match : '';
+                    const markerKey = `day${dayNum}-act${idx}`;
 
-                return (
-                    <CircleMarker
-                        key={`act-${idx}`}
-                        center={[coords.lat, coords.lng]}
-                        radius={12}
-                        pathOptions={{ fillColor: color, color: '#fff', weight: 3, opacity: 1, fillOpacity: 0.9 }}
-                        ref={el => { markerRefs.current[idx] = el; }}
-                    >
-                        <Popup maxWidth={360}>
-                            <div style={{ minWidth: 260, maxWidth: 340, padding: 4 }}>
-                                {imageUrl && (
-                                    <img
-                                        src={imageUrl}
-                                        alt={p.matched_product_name || p.name}
-                                        style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
-                                        onError={e => { e.target.style.display = 'none'; }}
-                                    />
-                                )}
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                                    <span className="popup-badge" style={{ background: color }}>Day {p.day}</span>
-                                    <span className="popup-badge" style={{ background: '#10b981' }}>Rank #{rank}</span>
-                                    <span className="popup-badge" style={{ background: '#f59e0b' }}>{formattedScore} Match</span>
+                    const icon = L.divIcon({
+                        className: 'numbered-marker',
+                        html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);">${idx + 1}</div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                    });
+
+                    return (
+                        <Marker
+                            key={markerKey}
+                            position={[act.lat, act.lng]}
+                            icon={icon}
+                            zIndexOffset={500}
+                            ref={el => { activityMarkerRefs.current[markerKey] = el; }}
+                        >
+                            <Popup maxWidth={340}>
+                                <div style={{ minWidth: 260, maxWidth: 320, padding: 4 }}>
+                                    {imageUrl && (
+                                        <img
+                                            src={imageUrl}
+                                            alt={act.name}
+                                            style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
+                                            onError={e => { e.target.style.display = 'none'; }}
+                                        />
+                                    )}
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        <span className="popup-badge" style={{ background: color }}>Day {dayNum} • #{idx + 1}</span>
+                                        {score !== '' && <span className="popup-badge" style={{ background: '#10b981' }}>Score: {score}</span>}
+                                        {themeMatch !== '' && <span className="popup-badge" style={{ background: '#8b5cf6' }}>Theme: {themeMatch}%</span>}
+                                    </div>
+                                    <h4 style={{ margin: '0 0 8px', fontSize: 14, color: '#333', lineHeight: 1.3 }}>
+                                        {act.name || 'Activity'}
+                                    </h4>
+                                    <div className="popup-details">
+                                        <p>🕐 <strong>Time:</strong> {act.time || 'TBD'}</p>
+                                        <p>📍 <strong>Location:</strong> {act.city || act.location || 'N/A'}</p>
+                                        <p>🆔 <strong>ID:</strong> {act.activity_id || 'N/A'}</p>
+                                    </div>
+                                    <div className="popup-meta">
+                                        <p><strong>Coords:</strong> {act.lat.toFixed(4)}, {act.lng.toFixed(4)}</p>
+                                    </div>
                                 </div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 15, color: '#333', lineHeight: 1.3 }}>
-                                    {p.matched_product_name || p.product_name || p.name}
-                                </h4>
-                                <div className="popup-details">
-                                    <p>🕐 <strong>Time:</strong> {p.time || 'TBD'}</p>
-                                    <p>⏱️ <strong>Duration:</strong> {p.duration_hours ? p.duration_hours + ' hours' : 'N/A'}</p>
-                                    <p>📍 <strong>Location:</strong> {p.matched_city || p.location || 'N/A'}</p>
-                                    {region && <p>🗺️ <strong>Region:</strong> {region}</p>}
-                                </div>
-                                <div className="popup-meta">
-                                    <p><strong>ID:</strong> {p.lifestyle_id || p.matched_lifestyle_id || p.id || 'N/A'}</p>
-                                    <p><strong>Coords:</strong> {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</p>
-                                </div>
-                            </div>
-                        </Popup>
-                    </CircleMarker>
-                );
+                            </Popup>
+                        </Marker>
+                    );
+                });
             })}
 
             {/* Hotel markers */}
             {hotels.map((h, hIdx) => {
-                if (!h.latitude || !h.longitude) return null;
+                const lat = h.latitude || h.lat;
+                const lng = h.longitude || h.lng;
+                if (!lat || !lng) return null;
+
                 const hotelName = (h.name || h.hotel_name || '').toLowerCase().trim();
-                const isSelected = selectedHotelNames.names.has(hotelName);
+                const isSelected = selectedHotelInfo.names.has(hotelName);
                 const markerColor = isSelected ? '#10b981' : '#8b5cf6';
                 const markerSize = isSelected ? 42 : 32;
-                const hotelImageUrl = getFirstImageUrl(h.hotel_image || h.image);
-                const checkIn = h.check_in || h.check_in_time || '14:00';
-                const checkOut = h.check_out || h.check_out_time || '11:00';
-                const nights = h.nights || h.total_nights || 1;
-                const adults = h.adults || h.adult_count || 2;
-
-                const hotelDays = Object.entries(selectedHotelNames.dayMap)
+                const hotelImageUrl = getFirstImageUrl(h.image);
+                const checkIn = h.check_in || '14:00';
+                const checkOut = h.check_out || '11:00';
+                const nights = h.nights || 1;
+                const hotelDays = Object.entries(selectedHotelInfo.dayMap)
                     .filter(([, name]) => name === hotelName)
                     .map(([day]) => parseInt(day));
 
@@ -204,7 +234,7 @@ export default function MapView({ data, selectedDay, flyTo }) {
                 return (
                     <Marker
                         key={`hotel-${hIdx}`}
-                        position={[h.latitude, h.longitude]}
+                        position={[lat, lng]}
                         icon={icon}
                         zIndexOffset={isSelected ? 1000 : 0}
                         ref={el => {
@@ -214,35 +244,24 @@ export default function MapView({ data, selectedDay, flyTo }) {
                             }
                         }}
                     >
-                        <Popup maxWidth={350}>
-                            <div style={{ minWidth: 240, maxWidth: 320, padding: 4 }}>
+                        <Popup maxWidth={320}>
+                            <div style={{ minWidth: 240, maxWidth: 300, padding: 4 }}>
                                 {hotelImageUrl && (
                                     <img src={hotelImageUrl} alt={h.name || h.hotel_name}
-                                        style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
+                                        style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
                                         onError={e => { e.target.style.display = 'none'; }} />
                                 )}
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                                     <span className="popup-badge" style={{ background: isSelected ? '#10b981' : '#8b5cf6' }}>
                                         {isSelected ? `⭐ YOUR HOTEL${hotelDays.length > 0 ? ` (Day ${hotelDays.join(', ')})` : ''}` : '🏨 AVAILABLE'}
                                     </span>
                                     <span className="popup-badge" style={{ background: '#f59e0b' }}>⭐ {h.stars || h.star_classification || 'N/A'} Star</span>
                                 </div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 15, color: '#333' }}>{h.name || h.hotel_name}</h4>
+                                <h4 style={{ margin: '0 0 8px', fontSize: 14, color: '#333' }}>{h.name || h.hotel_name}</h4>
                                 <div className="popup-details">
-                                    <p>📍 <strong>Location:</strong> {h.city || h.hotel_city || 'N/A'}</p>
-                                    <p>🛏️ <strong>Room:</strong> {h.room_type || 'Standard Room'}</p>
+                                    <p>📍 <strong>Location:</strong> {h.city || h.address || 'N/A'}</p>
+                                    <p>📅 <strong>Dates:</strong> {checkIn} → {checkOut}</p>
                                     <p>🌙 <strong>Nights:</strong> {nights}</p>
-                                    <p>👥 <strong>Guests:</strong> {adults} Adults</p>
-                                </div>
-                                <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
-                                    <div style={{ flex: 1, background: '#e8f5e9', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-                                        <div style={{ fontSize: 10, color: '#2e7d32', fontWeight: 600 }}>CHECK-IN</div>
-                                        <div style={{ fontSize: 14, color: '#1b5e20', fontWeight: 700 }}>{checkIn}</div>
-                                    </div>
-                                    <div style={{ flex: 1, background: '#ffebee', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-                                        <div style={{ fontSize: 10, color: '#c62828', fontWeight: 600 }}>CHECK-OUT</div>
-                                        <div style={{ fontSize: 14, color: '#b71c1c', fontWeight: 700 }}>{checkOut}</div>
-                                    </div>
                                 </div>
                             </div>
                         </Popup>
@@ -250,23 +269,33 @@ export default function MapView({ data, selectedDay, flyTo }) {
                 );
             })}
 
-            {/* Complete route line */}
-            {routeData.allCoords.length > 1 && (
-                <Polyline
-                    positions={routeData.allCoords.map(r => r.coords)}
-                    pathOptions={{ color: '#6366f1', weight: 4, opacity: 0.7, smoothFactor: 1 }}
-                />
-            )}
-
-            {/* Day-colored route segments */}
-            {Object.entries(routeData.byDay).map(([day, items]) => {
-                if (items.length < 2) return null;
+            {/* Day route lines (dashed with color per day) */}
+            {Object.entries(dayRoutes).map(([day, coords]) => {
+                if (coords.length < 2) return null;
                 const color = DAY_COLORS[(parseInt(day) - 1) % DAY_COLORS.length];
                 return (
                     <Polyline
                         key={`route-${day}`}
-                        positions={items.map(i => i.coords)}
-                        pathOptions={{ color, weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+                        positions={coords}
+                        pathOptions={{ color, weight: 4, opacity: 0.85, dashArray: '10, 6', lineCap: 'round', lineJoin: 'round' }}
+                    />
+                );
+            })}
+
+            {/* Arrow direction markers */}
+            {arrowPoints.map(arrow => {
+                const icon = L.divIcon({
+                    className: 'arrow-marker',
+                    html: `<div style="color:${arrow.color};font-size:18px;font-weight:bold;transform:rotate(${90 - arrow.angle}deg);text-shadow:0 0 4px rgba(0,0,0,.5);">➤</div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10],
+                });
+                return (
+                    <Marker
+                        key={arrow.key}
+                        position={arrow.pos}
+                        icon={icon}
+                        interactive={false}
                     />
                 );
             })}
